@@ -631,6 +631,11 @@ void textview_show_part(TextView *textview, MimeInfo *mimeinfo, FILE *fp)
 	END_TIMING();
 }
 
+static void textview_add_header_line(TextView *textview, gchar *buf){
+	GHashTable *headers = procmsg_msginfo_get_protected_headers(textview->messageview->msginfo);
+	g_message("Found Header: %s",buf);
+}
+
 static void textview_add_part(TextView *textview, MimeInfo *mimeinfo)
 {
 	GtkAllocation allocation;
@@ -769,6 +774,38 @@ static void textview_add_part(TextView *textview, MimeInfo *mimeinfo)
 			END_TIMING();
 			GTK_EVENTS_FLUSH();
 		}
+	} else if (mimeinfo->type == MIMETYPE_TEXT &&
+		!g_ascii_strcasecmp(mimeinfo->subtype, "rfc822-headers")) {
+		size_t wrote = 0,i=0;
+		FILE *fp;
+		g_message("FounD RFC822 protected headers part.");
+		procmsg_msginfo_add_protected_headers(textview->messageview->msginfo);
+
+		fp = claws_fopen(mimeinfo->data.filename, "rb");
+		if (!fp) {
+			FILE_OP_ERROR(mimeinfo->data.filename, "claws_fopen");
+			END_TIMING();
+			return;
+		}
+		if (fseek(fp, mimeinfo->offset, SEEK_SET) < 0) {
+			FILE_OP_ERROR(mimeinfo->data.filename, "fseek");
+			claws_fclose(fp);
+			END_TIMING();
+			return;
+		}
+		g_message("Viewing text content of type: %s (length: %d)\n", mimeinfo->subtype, mimeinfo->length);
+		while (((i = ftell(fp)) < mimeinfo->offset + mimeinfo->length) &&
+		       (claws_fgets(buf, sizeof(buf), fp) != NULL)) {
+			textview_add_header_line(textview, buf);
+			if (textview->stop_loading) {
+				claws_fclose(fp);
+				END_TIMING();
+				return;
+			}
+			wrote += ftell(fp)-i;
+		}
+		g_message("Written %ld bytes",wrote);
+		claws_fclose(fp);
 	} else if (mimeinfo->type == MIMETYPE_TEXT) {
 		if (prefs_common.display_header && (charcount > 0))
 			gtk_text_buffer_insert(buffer, &iter, "\n", 1);

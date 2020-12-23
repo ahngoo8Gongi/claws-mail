@@ -793,6 +793,27 @@ void procmsg_msginfo_add_avatar(MsgInfo *msginfo, gint type, const gchar *data)
 	msginfo->extradata->avatars = g_slist_append(msginfo->extradata->avatars, av);
 }
 
+GHashTable *procmsg_msginfo_get_protected_headers(MsgInfo *msginfo)
+{
+	if (!msginfo || !msginfo->extradata || !msginfo->extradata->protected_headers)
+		return NULL;
+
+	return msginfo->extradata->protected_headers;
+}
+
+void procmsg_msginfo_add_protected_headers(MsgInfo *msginfo)
+{
+	if (!msginfo->extradata)
+		msginfo->extradata = g_new0(MsgInfoExtraData, 1);
+
+	if (msginfo->extradata->protected_headers)
+		g_warning("Found another instance of RFC822 headers");
+	else {
+		msginfo->extradata->protected_headers =
+			g_hash_table_new(g_str_hash, g_str_equal);
+	}
+}
+
 gchar *procmsg_msginfo_get_identifier(MsgInfo *msginfo)
 {
 	gchar *folder_id;
@@ -1428,6 +1449,10 @@ void procmsg_msginfo_free(MsgInfo **msginfo_ptr)
 		FREENULL(msginfo->extradata->account_server);
 		FREENULL(msginfo->extradata->account_login);
 		FREENULL(msginfo->extradata->resent_from);
+		if (msginfo->extradata->protected_headers) {
+			g_hash_table_unref(msginfo->extradata->protected_headers);
+			msginfo->extradata->protected_headers = NULL;
+		}
 		FREENULL(msginfo->extradata);
 	}
 	slist_free_strings_full(msginfo->references);
