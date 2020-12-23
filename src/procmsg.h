@@ -255,6 +255,8 @@ struct _MsgInfoExtraData
  	gchar *list_help;
  	gchar *list_archive;
  	gchar *list_owner;
+
+	GHashTable *protected_headers;
 };
 
 struct _MsgInfoAvatar
@@ -405,4 +407,6 @@ gchar *procmsg_msginfo_get_identifier(MsgInfo *msginfo);
 
 gchar *procmsg_msginfo_get_avatar(MsgInfo *msginfo, gint type);
 void procmsg_msginfo_add_avatar(MsgInfo *msginfo, gint type, const gchar *data);
+GHashTable *procmsg_msginfo_get_protected_headers(MsgInfo *msginfo);
+void procmsg_msginfo_add_protected_headers(MsgInfo *msginfo);
 #endif /* __PROCMSG_H__ */
